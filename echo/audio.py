@@ -17,10 +17,16 @@ class Recorder:
         self._buffers: list[np.ndarray] = []
         self._lock = threading.Lock()
         self._started_at: float = 0.0
+        self._level: float = 0.0
 
     @property
     def is_recording(self) -> bool:
         return self._stream is not None
+
+    @property
+    def level(self) -> float:
+        """Current input RMS level in 0..1, refreshed every callback."""
+        return self._level
 
     @property
     def duration_seconds(self) -> float:
@@ -34,6 +40,7 @@ class Recorder:
         self._buffers = []
 
         def callback(indata, frames, time_info, status) -> None:  # noqa: ARG001
+            self._level = float(np.sqrt(np.mean(np.square(indata))))
             with self._lock:
                 self._buffers.append(indata.copy())
 
