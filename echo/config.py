@@ -1,8 +1,21 @@
 import os
+import sys
 from pathlib import Path
 
-PROJECT_DIR = Path(__file__).resolve().parent.parent
-ENV_PATH = PROJECT_DIR / ".env"
+if getattr(sys, "frozen", False):
+    _MEIPASS = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
+    _EXE_DIR = Path(sys.executable).resolve().parent
+else:
+    _MEIPASS = Path(__file__).resolve().parent.parent
+    _EXE_DIR = _MEIPASS
+
+
+def _find_env_path() -> Path:
+    external = _EXE_DIR / ".env"
+    if external.exists():
+        return external
+    bundled = _MEIPASS / ".env"
+    return bundled if bundled.exists() else external
 
 
 def _load_dotenv(path: Path) -> None:
@@ -25,7 +38,7 @@ def _get(name: str, default: str | None = None) -> str | None:
 
 class Settings:
     def __init__(self) -> None:
-        _load_dotenv(ENV_PATH)
+        _load_dotenv(_find_env_path())
         self.gemini_api_key = _get("GEMINI_API_KEY", "").strip()
         self.whisper_model = (_get("WHISPER_MODEL", "base") or "base").strip()
         self.gemini_model = (_get("GEMINI_MODEL", "gemini-3.8-flash") or "gemini-3.8-flash").strip()
